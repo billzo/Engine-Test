@@ -61,15 +61,14 @@ public class MyEngineTest implements ApplicationListener{
 	public class MyActor extends Actor {
 		private float X = 0;
 		private float Y = 0;
-		Texture texture = new Texture(Gdx.files.internal("index.png"));
+		Texture texture = new Texture(Gdx.files.internal("spaceBackground.png"));
 		@Override
 		public void draw(Batch batch, float alpha) {
 			batch.draw(texture, X, Y);
 		}
 		@Override
 		public void act(float delta) {
-			X = X + 1;
-			Y = Y + 1;
+			X = X - 1;
 		}
 	}
 	
