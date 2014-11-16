@@ -59,12 +59,21 @@ public class MyEngineTest implements ApplicationListener{
 	private PointLight pLight;
 
 	public class MyActor extends Actor {
-		private float X = 0;
-		private float Y = 0;
-		Texture texture = new Texture(Gdx.files.internal("spaceBackground.png"));
+
+		Texture texture = new Texture(Gdx.files.internal("newSpaceBackground.png"));
+		Sprite sprite = new Sprite(texture);
+		
+		private float X = Gdx.graphics.getWidth();
+		private float Y = -100;
+
+		private void scale() {
+			sprite.setScale(.8f);
+			sprite.setSize(sprite.getWidth() * sprite.getScaleX(), sprite.getHeight() * sprite.getScaleY());
+			
+		}
 		@Override
 		public void draw(Batch batch, float alpha) {
-			batch.draw(texture, X, Y);
+		    batch.draw(sprite, X, Y, sprite.getOriginX(), sprite.getOriginY(), sprite.getWidth(), sprite.getHeight(), sprite.getScaleX(), sprite.getScaleY(), sprite.getRotation());
 		}
 		@Override
 		public void act(float delta) {
@@ -110,6 +119,7 @@ public class MyEngineTest implements ApplicationListener{
 		
 		stage = new Stage();
 		MyActor myActor = new MyActor();
+		myActor.scale();
 		stage.addActor(myActor);
 		
 		rayHandler = new RayHandler(world);
@@ -134,7 +144,7 @@ public class MyEngineTest implements ApplicationListener{
 		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 		
 		stage.act(Gdx.graphics.getDeltaTime());
-		stage.draw();
+
 		
 		newTime = TimeUtils.millis() / 1000.0;
 		frameTime = Math.min(newTime - currentTime, 0.25f);
@@ -148,9 +158,8 @@ public class MyEngineTest implements ApplicationListener{
 			interpolate((float) accumulator / step);
 
 		}
-		
 
-
+		stage.draw();
 
 		batch.setProjectionMatrix(camera.combined);
 		
@@ -169,6 +178,8 @@ public class MyEngineTest implements ApplicationListener{
 		
 		rayHandler.setCombinedMatrix(camera.combined);
 		rayHandler.updateAndRender();
+		
+
 		
 		Gdx.graphics.setTitle("FPS: " + Gdx.graphics.getFramesPerSecond());
 		
