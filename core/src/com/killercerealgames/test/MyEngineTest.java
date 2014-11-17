@@ -1,8 +1,6 @@
 package com.killercerealgames.test;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 
 import box2dLight.PointLight;
 import box2dLight.RayHandler;
@@ -15,6 +13,7 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
@@ -65,19 +64,37 @@ public class MyEngineTest implements ApplicationListener{
 	
 	private RayHandler rayHandler;
 	private PointLight pLight;
-	private HashMap<Body, PointLight> pLights;
 	
 	private MyContactHandler myContactHandler;
 	
 	Array<Body> bodies;
 	
+	public static int numberOfReds = 0;
+	
+	private long timeStarted;
+	private long timeNow;
+	public static long timeTaken;
+	public static long bestTime = (long) 60.0 * 1000;
+	
 	public class Shape {
+		private String type;
 		public Body body;
 		public Sprite sprite;
-		public Shape (Body body, Sprite sprite) {
+		private PointLight pLight;
+		public Shape (Body body, Sprite sprite, PointLight pLight, String type) {
 			this.body = body;
 			this.sprite = sprite;
+			this.pLight = pLight;
+			this.type = type;
 		}
+		public void delete() {
+			if (pLight != null)
+				pLight.remove();
+		}
+		public String getType() {
+			return type;
+		}
+		
 	}
 	
 	public class MyContactHandler implements ContactListener {
@@ -130,13 +147,29 @@ public class MyEngineTest implements ApplicationListener{
 		MySprite sprite1 = new MySprite(texture, 0, 0);
 		MySprite sprite2 = new MySprite(texture, sprite1.myX + sprite1.getWidth(), 0);
 		
+        BitmapFont font = new BitmapFont();
+        String stringTime;
+        String bestTime;
+		
 		private MySprite currentSprite = sprite1;
 		private MySprite nextSprite = sprite2;
+		
+		public void init() {
+			font.setColor(Color.YELLOW);
+		}
 
 		@Override
 		public void draw(Batch batch, float alpha) {
 		    batch.draw(sprite1, sprite1.myX, sprite1.myY, sprite1.getOriginX(), sprite1.getOriginY(), sprite1.getWidth(), sprite1.getHeight(), sprite1.getScaleX(), sprite1.getScaleY(), sprite1.getRotation());
 		    batch.draw(sprite2, sprite2.myX, sprite2.myY, sprite2.getOriginX(), sprite2.getOriginY(), sprite2.getWidth(), sprite2.getHeight(), sprite2.getScaleX(), sprite2.getScaleY(), sprite2.getRotation());
+		    
+		    font.draw(batch, "" + MyEngineTest.numberOfReds, Gdx.graphics.getWidth() - 20, Gdx.graphics.getHeight() - 20);
+		   
+		    stringTime = "" + (MyEngineTest.timeTaken / 1000) + "." + ((MyEngineTest.timeTaken / 100) % 10);
+		    font.draw(batch, "" + stringTime, Gdx.graphics.getWidth() - 35, Gdx.graphics.getHeight() - 35);
+		    
+		    bestTime = "" + (MyEngineTest.bestTime / 1000) + "." + ((MyEngineTest.bestTime / 100) % 10);
+			font.draw(batch, "Best time: " + bestTime, Gdx.graphics.getWidth() - 100, Gdx.graphics.getHeight() - 70);
 		}
 		@Override
 		public void act(float delta) {
@@ -167,13 +200,28 @@ public class MyEngineTest implements ApplicationListener{
 		renderer = new Box2DDebugRenderer();
 		
 		shapes = new HashMap<Body, Shape>();
-		texture = new Texture(Gdx.files.internal("index.png"));
+
 		
 		rayHandler = new RayHandler(world);
 		rayHandler.setShadows(false);
 		
-		pLights = new HashMap<Body, PointLight>();
+		generateShapesAndCenterCamera();
 		
+		batch = new SpriteBatch();
+		
+		stage = new Stage();
+		MyActor myActor = new MyActor();
+		myActor.init();
+		stage.addActor(myActor);
+
+
+		
+		bodies = new Array<Body>();
+
+	}
+
+	private void generateShapesAndCenterCamera() {
+		texture = new Texture(Gdx.files.internal("index.png"));
 		for (Body body : scene.getNamed(Body.class, "circle")) {
 			Sprite sprite = new Sprite(texture);
 			sprite.setScale(1/200f);
@@ -185,9 +233,13 @@ public class MyEngineTest implements ApplicationListener{
 			
 			body.setUserData("red");
 			
-			shapes.put(body, new Shape(body, sprite));
-			pLights.put(body, pLight);
+			shapes.put(body, new Shape(body, sprite, pLight, "red"));
+			
+			numberOfReds++;
 		}
+		
+		
+
 		
 		texture = new Texture(Gdx.files.internal("blue.png"));
 		blue = scene.getNamed(Body.class, "square").first();
@@ -195,19 +247,7 @@ public class MyEngineTest implements ApplicationListener{
 		Sprite blueSprite = new Sprite(texture);
 		blueSprite.setScale(1/750f);
 		blueSprite.setOriginCenter();
-		shapes.put(blue, new Shape(blue, blueSprite));
 		
-		boundaries = new HashMap<String, Body>();
-		createBoundaries();
-		centerCamera();
-		
-		batch = new SpriteBatch();
-		
-		stage = new Stage();
-		MyActor myActor = new MyActor();
-		stage.addActor(myActor);
-
-	
 		pLight = new PointLight(rayHandler, 20, Color.CYAN, 2, 0, 0);
 		pLight.isXray();
 		pLight.attachToBody(blue);
@@ -218,7 +258,16 @@ public class MyEngineTest implements ApplicationListener{
 		
 		PointLight.setContactFilter(filter);
 		
-		bodies = new Array<Body>();
+		shapes.put(blue, new Shape(blue, blueSprite, pLight, "blue"));
+		
+		boundaries = new HashMap<String, Body>();
+		createBoundaries();
+		centerCamera();
+		
+		timeStarted = System.currentTimeMillis();
+		timeNow = System.currentTimeMillis();
+		timeTaken = timeNow - timeStarted;
+		
 
 	}
 
@@ -257,8 +306,11 @@ public class MyEngineTest implements ApplicationListener{
 		batch.end();
 		
 		checkInput();
-		if (debug)
-		renderer.render(world, camera.combined);
+		if (debug) {
+			renderer.render(world, camera.combined);
+			System.out.println(world.getBodyCount());
+		}
+
 		
 		rayHandler.setCombinedMatrix(camera.combined);
 		rayHandler.updateAndRender();
@@ -266,14 +318,48 @@ public class MyEngineTest implements ApplicationListener{
 		world.getBodies(bodies);
 		for (Body body : bodies) {
 			if (body.getUserData() != null && body.getUserData().equals("DELETE")) {
+				Shape shape = shapes.get(body);
+				if (shape.getType().equals("red")) {
+					numberOfReds--;
+				}
+				shape.delete();
 				shapes.remove(body);
-				pLights.get(body).remove();
-				pLights.remove(body);
 				world.destroyBody(body);
 			}
 		}
 		
 		Gdx.graphics.setTitle("FPS: " + Gdx.graphics.getFramesPerSecond());
+		timeNow = System.currentTimeMillis();
+		timeTaken = timeNow - timeStarted;
+		
+		if (numberOfReds == 0) {
+			if (timeTaken < bestTime) 
+				bestTime = timeTaken;
+			respawn();
+		}
+		
+	}
+	
+	private void respawn() {
+		numberOfReds = 0;
+		world.clearForces();
+		world.getBodies(bodies);
+		for (Body body : bodies) {
+			Shape shape = shapes.get(body);
+			if (shape == null) {
+				System.out.println("null shape");
+			}
+			else {
+				shape.delete();
+				shapes.remove(body);
+			}
+
+			world.destroyBody(body);
+		}
+
+		loader = new RubeSceneLoader(world);
+		scene = loader.loadScene(Gdx.files.internal("ball.json"));
+		generateShapesAndCenterCamera();
 		
 	}
 	
@@ -361,6 +447,7 @@ public class MyEngineTest implements ApplicationListener{
 
 		texture.dispose();
 		rayHandler.dispose();
+		world.dispose();
 		
 	}
 	
@@ -368,17 +455,20 @@ public class MyEngineTest implements ApplicationListener{
 		if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT_BRACKET)) {
 			debug = !debug;
 		}
-		if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
+		if (Gdx.input.isKeyJustPressed(Input.Keys.W) || Gdx.input.isKeyJustPressed(Input.Keys.UP)) {
 			blue.applyForceToCenter(new Vector2(0, 50), true);
 		}
-		if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+		if (Gdx.input.isKeyJustPressed(Input.Keys.S) || Gdx.input.isKeyJustPressed(Input.Keys.DOWN)) {
 			blue.applyForceToCenter(new Vector2(0, -50), true);
 		}
-		if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
+		if (Gdx.input.isKeyJustPressed(Input.Keys.A) || Gdx.input.isKeyJustPressed(Input.Keys.LEFT)) {
 			blue.applyForceToCenter(new Vector2(-50, 0), true);
 		}
-		if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
+		if (Gdx.input.isKeyJustPressed(Input.Keys.D) || Gdx.input.isKeyJustPressed(Input.Keys.RIGHT)) {
 			blue.applyForceToCenter(new Vector2(50, 0), true);
+		}
+		if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+			respawn();
 		}
 	}
 
