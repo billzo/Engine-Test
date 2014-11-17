@@ -1,6 +1,8 @@
 package com.killercerealgames.test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import box2dLight.PointLight;
 import box2dLight.RayHandler;
@@ -19,11 +21,17 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
+import com.badlogic.gdx.physics.box2d.Contact;
+import com.badlogic.gdx.physics.box2d.ContactImpulse;
+import com.badlogic.gdx.physics.box2d.ContactListener;
 import com.badlogic.gdx.physics.box2d.Filter;
+import com.badlogic.gdx.physics.box2d.Fixture;
+import com.badlogic.gdx.physics.box2d.Manifold;
 import com.badlogic.gdx.physics.box2d.Transform;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.gushikustudios.rube.RubeScene;
 import com.gushikustudios.rube.loader.RubeSceneLoader;
@@ -44,7 +52,7 @@ public class MyEngineTest implements ApplicationListener{
 	private Box2DDebugRenderer renderer;
 	
 	private Texture texture;
-	private HashMap<Sprite, Body> sprites;
+	private HashMap<Body, Shape> shapes;
 
 	private SpriteBatch batch;
 	
@@ -57,35 +65,99 @@ public class MyEngineTest implements ApplicationListener{
 	
 	private RayHandler rayHandler;
 	private PointLight pLight;
-
-	public class MyActor extends Actor {
-
-		Texture texture = new Texture(Gdx.files.internal("newSpaceBackground.png"));
-		Sprite sprite = new Sprite(texture);
+	private HashMap<Body, PointLight> pLights;
+	
+	private MyContactHandler myContactHandler;
+	
+	Array<Body> bodies;
+	
+	public class Shape {
+		public Body body;
+		public Sprite sprite;
+		public Shape (Body body, Sprite sprite) {
+			this.body = body;
+			this.sprite = sprite;
+		}
+	}
+	
+	public class MyContactHandler implements ContactListener {
 		
-		private float X = Gdx.graphics.getWidth();
-		private float Y = -100;
+		public MyContactHandler() {}
 
-		private void scale() {
-			sprite.setScale(.8f);
-			sprite.setSize(sprite.getWidth() * sprite.getScaleX(), sprite.getHeight() * sprite.getScaleY());
+		@Override
+		public void beginContact(Contact contact) {
+			
+			Fixture A = contact.getFixtureA();
+			Fixture B = contact.getFixtureB();
+			
+			if (A.getBody().getUserData() != null && B.getBody().getUserData() != null) {
+				
+				if (A.getBody().getUserData().equals("blue") && B.getBody().getUserData().equals("red")) {
+					B.getBody().setUserData("DELETE");
+				}
+				else if (B.getBody().getUserData().equals("blue") && A.getBody().getUserData().equals("red")) {
+					A.getBody().setUserData("DELETE");
+				}
+				
+			}
 			
 		}
+
+		@Override
+		public void endContact(Contact contact) {}
+
+		@Override
+		public void preSolve(Contact contact, Manifold oldManifold) {}
+
+		@Override
+		public void postSolve(Contact contact, ContactImpulse impulse) {}
+		
+	}
+	
+	public class MySprite extends Sprite {
+		public float myX;
+		public float myY;
+		
+		public MySprite(Texture texture, float X1, float Y1) {
+			super(texture);
+			this.myX = X1;
+			this.myY = Y1;
+		}
+	}
+
+	public class MyActor extends Actor {
+		Texture texture = new Texture(Gdx.files.internal("newSpaceBackground.png"));
+		MySprite sprite1 = new MySprite(texture, 0, 0);
+		MySprite sprite2 = new MySprite(texture, sprite1.myX + sprite1.getWidth(), 0);
+		
+		private MySprite currentSprite = sprite1;
+		private MySprite nextSprite = sprite2;
+
 		@Override
 		public void draw(Batch batch, float alpha) {
-		    batch.draw(sprite, X, Y, sprite.getOriginX(), sprite.getOriginY(), sprite.getWidth(), sprite.getHeight(), sprite.getScaleX(), sprite.getScaleY(), sprite.getRotation());
+		    batch.draw(sprite1, sprite1.myX, sprite1.myY, sprite1.getOriginX(), sprite1.getOriginY(), sprite1.getWidth(), sprite1.getHeight(), sprite1.getScaleX(), sprite1.getScaleY(), sprite1.getRotation());
+		    batch.draw(sprite2, sprite2.myX, sprite2.myY, sprite2.getOriginX(), sprite2.getOriginY(), sprite2.getWidth(), sprite2.getHeight(), sprite2.getScaleX(), sprite2.getScaleY(), sprite2.getRotation());
 		}
 		@Override
 		public void act(float delta) {
-			X = X - 1;
+			currentSprite.myX = currentSprite.myX - 1;
+			nextSprite.myX = currentSprite.myX + currentSprite.getWidth();
+			if (currentSprite.myX <= -currentSprite.getWidth()) {
+				MySprite holder = currentSprite;
+				currentSprite = nextSprite;
+				nextSprite = holder;
+			}
+
 		}
 	}
 	
 	@Override
 	public void create () {
 		
+		myContactHandler = new MyContactHandler();
 	
 		world = new World(new Vector2(0,-9.81f), true);
+		world.setContactListener(myContactHandler);
 		
 		loader = new RubeSceneLoader(world);
 		scene = loader.loadScene(Gdx.files.internal("ball.json"));
@@ -94,22 +166,36 @@ public class MyEngineTest implements ApplicationListener{
 		camera.zoom = 0.5f;
 		renderer = new Box2DDebugRenderer();
 		
-		sprites = new HashMap<Sprite, Body>();
+		shapes = new HashMap<Body, Shape>();
 		texture = new Texture(Gdx.files.internal("index.png"));
+		
+		rayHandler = new RayHandler(world);
+		rayHandler.setShadows(false);
+		
+		pLights = new HashMap<Body, PointLight>();
+		
 		for (Body body : scene.getNamed(Body.class, "circle")) {
 			Sprite sprite = new Sprite(texture);
 			sprite.setScale(1/200f);
 			sprite.setOriginCenter();
 			
-			sprites.put(sprite, body);
+			pLight = new PointLight(rayHandler, 20, Color.RED, 0.90f, 0, 0);
+			pLight.isXray();
+			pLight.attachToBody(body);
+			
+			body.setUserData("red");
+			
+			shapes.put(body, new Shape(body, sprite));
+			pLights.put(body, pLight);
 		}
 		
 		texture = new Texture(Gdx.files.internal("blue.png"));
 		blue = scene.getNamed(Body.class, "square").first();
-		Sprite sprite = new Sprite(texture);
-		sprite.setScale(1/750f);
-		sprite.setOriginCenter();
-		sprites.put(sprite, blue);
+		blue.setUserData("blue");
+		Sprite blueSprite = new Sprite(texture);
+		blueSprite.setScale(1/750f);
+		blueSprite.setOriginCenter();
+		shapes.put(blue, new Shape(blue, blueSprite));
 		
 		boundaries = new HashMap<String, Body>();
 		createBoundaries();
@@ -119,22 +205,20 @@ public class MyEngineTest implements ApplicationListener{
 		
 		stage = new Stage();
 		MyActor myActor = new MyActor();
-		myActor.scale();
 		stage.addActor(myActor);
-		
-		rayHandler = new RayHandler(world);
-		rayHandler.setShadows(false);
+
 	
-		pLight = new PointLight(rayHandler, 100, Color.CYAN, 5,
-				(boundaries.get("right").getPosition().x + boundaries.get("left").getPosition().x) / 2,
-				boundaries.get("up").getPosition().y - 1);
+		pLight = new PointLight(rayHandler, 20, Color.CYAN, 2, 0, 0);
 		pLight.isXray();
+		pLight.attachToBody(blue);
 		
 		Filter filter = new Filter();
 		filter.categoryBits = 0;
 		filter.maskBits = 0;
 		
 		PointLight.setContactFilter(filter);
+		
+		bodies = new Array<Body>();
 
 	}
 
@@ -166,8 +250,8 @@ public class MyEngineTest implements ApplicationListener{
 		centerSprites();
 
 		batch.begin();
-		for (Sprite sprite : sprites.keySet()) {
-			sprite.draw(batch);
+		for (Shape shape : shapes.values()) {
+			shape.sprite.draw(batch);
 		}
 
 		batch.end();
@@ -179,7 +263,15 @@ public class MyEngineTest implements ApplicationListener{
 		rayHandler.setCombinedMatrix(camera.combined);
 		rayHandler.updateAndRender();
 		
-
+		world.getBodies(bodies);
+		for (Body body : bodies) {
+			if (body.getUserData() != null && body.getUserData().equals("DELETE")) {
+				shapes.remove(body);
+				pLights.get(body).remove();
+				pLights.remove(body);
+				world.destroyBody(body);
+			}
+		}
 		
 		Gdx.graphics.setTitle("FPS: " + Gdx.graphics.getFramesPerSecond());
 		
@@ -209,14 +301,15 @@ public class MyEngineTest implements ApplicationListener{
 	}
 
 	private void centerSprites() {
-		for (Sprite sprite : sprites.keySet()) {
-			sprite.setPosition(sprites.get(sprite).getPosition().x - sprite.getWidth() / 2, sprites.get(sprite).getPosition().y - sprite.getWidth() / 2);
+		for (Shape shape : shapes.values()) {
+			shape.sprite.setPosition(shape.body.getPosition().x - shape.sprite.getWidth() / 2, shape.body.getPosition().y - shape.sprite.getWidth() / 2);
 		}
 	}
 	
 	private void interpolate (float alpha) {
-		for (Sprite sprite : sprites.keySet()) {
-			Transform transform = sprites.get(sprite).getTransform();
+		for (Shape shape : shapes.values()) {
+			Sprite sprite = shape.sprite;
+			Transform transform = shape.body.getTransform();
 			Vector2 bodyPosition = transform.getPosition();
 			Float rotation = MathUtils.radiansToDegrees * transform.getRotation();
 			
