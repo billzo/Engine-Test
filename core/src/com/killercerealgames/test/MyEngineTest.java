@@ -60,7 +60,7 @@ public class MyEngineTest implements ApplicationListener{
 	private Stage stage;
 	
 	private Body blue;
-	private boolean debug = true;
+	private boolean debug = false;
 	
 	private RayHandler rayHandler;
 	private PointLight pLight;
