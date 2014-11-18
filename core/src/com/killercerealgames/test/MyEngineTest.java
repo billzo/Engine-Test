@@ -1,6 +1,13 @@
 package com.killercerealgames.test;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.HashMap;
+import java.util.Map.Entry;
 
 import box2dLight.PointLight;
 import box2dLight.RayHandler;
@@ -30,6 +37,9 @@ import com.badlogic.gdx.physics.box2d.Transform;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.scenes.scene2d.Actor;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Label;
+import com.badlogic.gdx.scenes.scene2d.ui.Skin;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.gushikustudios.rube.RubeScene;
@@ -74,7 +84,11 @@ public class MyEngineTest implements ApplicationListener{
 	private long timeStarted;
 	private long timeNow;
 	public static long timeTaken;
-	public static long bestTime = (long) 60.0 * 1000;
+
+	
+	boolean isLocAvailable;
+	
+	public static HashMap<String, String> savedData;
 	
 	public class Shape {
 		private String type;
@@ -143,6 +157,9 @@ public class MyEngineTest implements ApplicationListener{
 	}
 
 	public class MyActor extends Actor {
+		Skin skin = new Skin(Gdx.files.internal("data/uiskin.json"));
+		Table table = new Table(skin);
+		
 		Texture texture = new Texture(Gdx.files.internal("newSpaceBackground.png"));
 		MySprite sprite1 = new MySprite(texture, 0, 0);
 		MySprite sprite2 = new MySprite(texture, sprite1.myX + sprite1.getWidth(), 0);
@@ -154,8 +171,32 @@ public class MyEngineTest implements ApplicationListener{
 		private MySprite currentSprite = sprite1;
 		private MySprite nextSprite = sprite2;
 		
+		private Label numberOfRedsText = new Label("Red squares remaining: ", skin);
+		private Label numberOfRedsNumber = new Label("", skin);
+		private Label currentTimeText = new Label("Table elapsed: ", skin);
+		private Label currentTimeNumber = new Label("", skin);
+		private Label bestTimeText = new Label("Best time: ", skin);
+		private Label bestTimeNumber = new Label("", skin);
+		
 		public void init() {
-			font.setColor(Color.YELLOW);
+			table.setPosition(Gdx.graphics.getWidth() - 120, Gdx.graphics.getHeight() - 50);
+
+			numberOfRedsText.setColor(Color.RED);
+			numberOfRedsNumber.setColor(Color.RED);
+			table.add(numberOfRedsText);
+			table.add(numberOfRedsNumber);
+			table.row();
+			
+			currentTimeText.setColor(Color.YELLOW);
+			currentTimeNumber.setColor(Color.YELLOW);
+			table.add(currentTimeText);
+			table.add(currentTimeNumber);
+			table.row();
+			
+			bestTimeText.setColor(Color.CYAN);
+			bestTimeNumber.setColor(Color.CYAN);
+			table.add(bestTimeText);
+			table.add(bestTimeNumber);
 		}
 
 		@Override
@@ -163,13 +204,10 @@ public class MyEngineTest implements ApplicationListener{
 		    batch.draw(sprite1, sprite1.myX, sprite1.myY, sprite1.getOriginX(), sprite1.getOriginY(), sprite1.getWidth(), sprite1.getHeight(), sprite1.getScaleX(), sprite1.getScaleY(), sprite1.getRotation());
 		    batch.draw(sprite2, sprite2.myX, sprite2.myY, sprite2.getOriginX(), sprite2.getOriginY(), sprite2.getWidth(), sprite2.getHeight(), sprite2.getScaleX(), sprite2.getScaleY(), sprite2.getRotation());
 		    
-		    font.draw(batch, "" + MyEngineTest.numberOfReds, Gdx.graphics.getWidth() - 20, Gdx.graphics.getHeight() - 20);
-		   
-		    stringTime = "" + (MyEngineTest.timeTaken / 1000) + "." + ((MyEngineTest.timeTaken / 100) % 10);
-		    font.draw(batch, "" + stringTime, Gdx.graphics.getWidth() - 35, Gdx.graphics.getHeight() - 35);
-		    
-		    bestTime = "" + (MyEngineTest.bestTime / 1000) + "." + ((MyEngineTest.bestTime / 100) % 10);
-			font.draw(batch, "Best time: " + bestTime, Gdx.graphics.getWidth() - 100, Gdx.graphics.getHeight() - 70);
+		    numberOfRedsNumber.setText(String.valueOf(MyEngineTest.numberOfReds));
+		    currentTimeNumber.setText((MyEngineTest.timeTaken / 1000) + "." + ((MyEngineTest.timeTaken / 100) % 10));
+		    bestTimeNumber.setText((Integer.parseInt(MyEngineTest.savedData.get("best_time")) / 1000) + "." + ((Integer.parseInt(MyEngineTest.savedData.get("best_time")) / 100) % 10));
+		    table.draw(batch, alpha);
 		}
 		@Override
 		public void act(float delta) {
@@ -186,6 +224,12 @@ public class MyEngineTest implements ApplicationListener{
 	
 	@Override
 	public void create () {
+		
+		isLocAvailable = Gdx.files.isLocalStorageAvailable();
+		if (isLocAvailable) {
+			savedData = new HashMap<String, String>();
+			loadData();
+		}
 		
 		myContactHandler = new MyContactHandler();
 	
@@ -213,10 +257,62 @@ public class MyEngineTest implements ApplicationListener{
 		MyActor myActor = new MyActor();
 		myActor.init();
 		stage.addActor(myActor);
-
-
 		
 		bodies = new Array<Body>();
+
+	}
+
+	private void loadData() {
+		if (!Gdx.files.internal("data.sav").exists()) {
+			try {
+				BufferedWriter writer = new BufferedWriter(new FileWriter(Gdx.files.internal("data.sav").file()));
+				writer.write("best_time\n" + 60 * 1000);
+				writer.close();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			loadData();
+		}
+		else {
+			try {
+				BufferedReader reader = new BufferedReader(new FileReader(Gdx.files.internal("data.sav").file()));
+				String data = null;
+				
+			    while ((data = reader.readLine()) != null)
+			    {
+			        savedData.put(data, reader.readLine());
+			    }
+				reader.close();
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		
+	}
+	
+	private void saveData() {
+		try {
+			BufferedWriter writer = new BufferedWriter(new FileWriter(Gdx.files.internal("data_temp.sav").file()));
+			for(Entry<String, String> e : savedData.entrySet()) {
+			        String key = e.getKey();
+			        String value = e.getValue();
+			        writer.append(key + "\n");
+			        writer.append(value);
+			}
+			writer.close();
+			if (Gdx.files.internal("data_temp.sav").exists()) {
+				Gdx.files.internal("data.sav").file().delete();
+				Gdx.files.internal("data_temp.sav").file().renameTo(Gdx.files.internal("data.sav").file());
+			}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 
 	}
 
@@ -333,8 +429,10 @@ public class MyEngineTest implements ApplicationListener{
 		timeTaken = timeNow - timeStarted;
 		
 		if (numberOfReds == 0) {
-			if (timeTaken < bestTime) 
-				bestTime = timeTaken;
+			if (timeTaken < Integer.parseInt((String)savedData.get("best_time"))) {
+				savedData.replace("best_time", String.valueOf(timeTaken));
+				saveData();
+			}
 			respawn();
 		}
 		
@@ -346,9 +444,7 @@ public class MyEngineTest implements ApplicationListener{
 		world.getBodies(bodies);
 		for (Body body : bodies) {
 			Shape shape = shapes.get(body);
-			if (shape == null) {
-				System.out.println("null shape");
-			}
+			if (shape == null) {}
 			else {
 				shape.delete();
 				shapes.remove(body);
@@ -432,7 +528,7 @@ public class MyEngineTest implements ApplicationListener{
 
 	@Override
 	public void pause() {
-		// TODO Auto-generated method stub
+		saveData();
 		
 	}
 
