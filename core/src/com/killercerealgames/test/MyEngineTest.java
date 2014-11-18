@@ -1,14 +1,19 @@
 package com.killercerealgames.test;
 
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.security.Key;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
+import javax.crypto.Cipher;
+import javax.crypto.spec.SecretKeySpec;
+
+import sun.misc.BASE64Decoder;
+import sun.misc.BASE64Encoder;
 import box2dLight.PointLight;
 import box2dLight.RayHandler;
 
@@ -87,7 +92,6 @@ public class MyEngineTest implements ApplicationListener{
 
 	
 	boolean isLocAvailable;
-	
 	public static HashMap<String, String> savedData;
 	
 	public class Shape {
@@ -170,7 +174,7 @@ public class MyEngineTest implements ApplicationListener{
 		
 		private MySprite currentSprite = sprite1;
 		private MySprite nextSprite = sprite2;
-		
+
 		private Label numberOfRedsText = new Label("Red squares remaining: ", skin);
 		private Label numberOfRedsNumber = new Label("", skin);
 		private Label currentTimeText = new Label("Table elapsed: ", skin);
@@ -222,9 +226,43 @@ public class MyEngineTest implements ApplicationListener{
 		}
 	}
 	
+	public static class EncryptionHandler {
+		
+			private static String algorithm = "AES";
+			private static byte[] keyValue = new byte[] {'4','3','9','1','2','3','8','8','4','5','3','5','1','1','0','4'};// your key
+
+			    public static String encrypt(String plainText) throws Exception 
+			    {
+			            Key key = generateKey();
+			            Cipher chiper = Cipher.getInstance(algorithm);
+			            chiper.init(Cipher.ENCRYPT_MODE, key);
+			            byte[] encVal = chiper.doFinal(plainText.getBytes());
+			            String encryptedValue = new BASE64Encoder().encode(encVal);
+			            return encryptedValue;
+			    }
+
+			    public static String decrypt(String encryptedText) throws Exception 
+			    {
+			            Key key = generateKey();
+			            Cipher chiper = Cipher.getInstance(algorithm);
+			            chiper.init(Cipher.DECRYPT_MODE, key);
+			            byte[] decordedValue = new BASE64Decoder().decodeBuffer(encryptedText);
+			            byte[] decValue = chiper.doFinal(decordedValue);
+			            String decryptedValue = new String(decValue);
+			            return decryptedValue;
+			    }
+
+			    private static Key generateKey() throws Exception 
+			    {
+			            Key key = new SecretKeySpec(keyValue, algorithm);
+			            return key;
+			    }
+		}
+	
 	@Override
 	public void create () {
 		
+		new EncryptionHandler();
 		isLocAvailable = Gdx.files.isLocalStorageAvailable();
 		if (isLocAvailable) {
 			savedData = new HashMap<String, String>();
@@ -266,28 +304,34 @@ public class MyEngineTest implements ApplicationListener{
 		if (!Gdx.files.internal("data.sav").exists()) {
 			try {
 				BufferedWriter writer = new BufferedWriter(new FileWriter(Gdx.files.internal("data.sav").file()));
-				writer.write("best_time\n" + 60 * 1000);
+				String defaultSave = new String("best_time" + 60 * 1000 + ";");
+				writer.write(new String(EncryptionHandler.encrypt(defaultSave)));
 				writer.close();
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (Exception e) {
 				e.printStackTrace();
 			}
 			loadData();
 		}
 		else {
 			try {
-				BufferedReader reader = new BufferedReader(new FileReader(Gdx.files.internal("data.sav").file()));
-				String data = null;
-				
-			    while ((data = reader.readLine()) != null)
+				byte[] data = Files.readAllBytes(Gdx.files.internal("data.sav").file().toPath());
+				String cleanData = EncryptionHandler.decrypt(new String(data));
+
+			    String info = "best_time";
+			    String result = cleanData.substring(cleanData.indexOf(info) + info.length(), cleanData.indexOf(";"));
 			    {
-			        savedData.put(data, reader.readLine());
+			        savedData.put(info, result);
 			    }
-				reader.close();
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
+				e.printStackTrace();
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -297,12 +341,13 @@ public class MyEngineTest implements ApplicationListener{
 	private void saveData() {
 		try {
 			BufferedWriter writer = new BufferedWriter(new FileWriter(Gdx.files.internal("data_temp.sav").file()));
+			String dataToSave = "";
 			for(Entry<String, String> e : savedData.entrySet()) {
-			        String key = e.getKey();
-			        String value = e.getValue();
-			        writer.append(key + "\n");
-			        writer.append(value);
+			        dataToSave += e.getKey();
+			        dataToSave += e.getValue();
+			        dataToSave += ";";
 			}
+			writer.write(EncryptionHandler.encrypt(dataToSave));
 			writer.close();
 			if (Gdx.files.internal("data_temp.sav").exists()) {
 				Gdx.files.internal("data.sav").file().delete();
@@ -311,6 +356,8 @@ public class MyEngineTest implements ApplicationListener{
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 
