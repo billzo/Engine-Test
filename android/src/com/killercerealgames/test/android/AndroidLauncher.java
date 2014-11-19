@@ -16,9 +16,14 @@ public class AndroidLauncher extends AndroidApplication {
 		AndroidApplicationConfiguration config = new AndroidApplicationConfiguration();
 
 		mogaController = Controller.getInstance(this);
-		mogaController.init();
-		MyEngineTest.mogaController1 = mogaController;
-		MyEngineTest.mogaEnabled = true;
+		try {
+			if (mogaController.init());
+			MyEngineTest.mogaController1 = mogaController;
+			MyEngineTest.mogaEnabled = true;
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
 
 		initialize(new MyEngineTest(), config);
 	}
