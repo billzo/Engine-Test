@@ -1,9 +1,13 @@
 package com.killercerealgames.test;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.security.Key;
 import java.util.HashMap;
@@ -46,6 +50,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Array;
+import com.badlogic.gdx.utils.Base64Coder;
 import com.badlogic.gdx.utils.TimeUtils;
 import com.gushikustudios.rube.RubeScene;
 import com.gushikustudios.rube.loader.RubeSceneLoader;
@@ -181,6 +186,8 @@ public class MyEngineTest implements ApplicationListener{
 		private Label currentTimeNumber = new Label("", skin);
 		private Label bestTimeText = new Label("Best time: ", skin);
 		private Label bestTimeNumber = new Label("", skin);
+		private Label previousTimeText = new Label("Previous time: ", skin);
+		private Label previousTimeNumber = new Label("", skin);
 		
 		public void init() {
 			table.setPosition(Gdx.graphics.getWidth() - 120, Gdx.graphics.getHeight() - 50);
@@ -201,6 +208,12 @@ public class MyEngineTest implements ApplicationListener{
 			bestTimeNumber.setColor(Color.CYAN);
 			table.add(bestTimeText);
 			table.add(bestTimeNumber);
+			table.row();
+			
+			previousTimeText.setColor(Color.ORANGE);
+			previousTimeNumber.setColor(Color.ORANGE);
+			table.add(previousTimeText);
+			table.add(previousTimeNumber);
 		}
 
 		@Override
@@ -211,6 +224,9 @@ public class MyEngineTest implements ApplicationListener{
 		    numberOfRedsNumber.setText(String.valueOf(MyEngineTest.numberOfReds));
 		    currentTimeNumber.setText((MyEngineTest.timeTaken / 1000) + "." + ((MyEngineTest.timeTaken / 100) % 10));
 		    bestTimeNumber.setText((Integer.parseInt(MyEngineTest.savedData.get("best_time")) / 1000) + "." + ((Integer.parseInt(MyEngineTest.savedData.get("best_time")) / 100) % 10));
+		   // bestTimeNumber.setText("0");
+		    //previousTimeNumber.setText((Integer.parseInt(MyEngineTest.savedData.get("previous_time")) / 1000) + "." + ((Integer.parseInt(MyEngineTest.savedData.get("previous_time")) / 100) % 10));
+		    previousTimeNumber.setText("0");
 		    table.draw(batch, alpha);
 		}
 		@Override
@@ -231,13 +247,13 @@ public class MyEngineTest implements ApplicationListener{
 			private static String algorithm = "AES";
 			private static byte[] keyValue = new byte[] {'4','3','9','1','2','3','8','8','4','5','3','5','1','1','0','4'};// your key
 
-			    public static String encrypt(String plainText) throws Exception 
+			    public static char[] encrypt(String plainText) throws Exception 
 			    {
 			            Key key = generateKey();
-			            Cipher chiper = Cipher.getInstance(algorithm);
-			            chiper.init(Cipher.ENCRYPT_MODE, key);
-			            byte[] encVal = chiper.doFinal(plainText.getBytes());
-			            String encryptedValue = new BASE64Encoder().encode(encVal);
+			            Cipher chipher = Cipher.getInstance(algorithm);
+			            chipher.init(Cipher.ENCRYPT_MODE, key);
+			            byte[] encVal = chipher.doFinal(plainText.getBytes());
+			            char[] encryptedValue = Base64Coder.encode(encVal);
 			            return encryptedValue;
 			    }
 
@@ -246,7 +262,7 @@ public class MyEngineTest implements ApplicationListener{
 			            Key key = generateKey();
 			            Cipher chiper = Cipher.getInstance(algorithm);
 			            chiper.init(Cipher.DECRYPT_MODE, key);
-			            byte[] decordedValue = new BASE64Decoder().decodeBuffer(encryptedText);
+			            byte[] decordedValue = Base64Coder.decode(encryptedText);
 			            byte[] decValue = chiper.doFinal(decordedValue);
 			            String decryptedValue = new String(decValue);
 			            return decryptedValue;
@@ -267,6 +283,9 @@ public class MyEngineTest implements ApplicationListener{
 		if (isLocAvailable) {
 			savedData = new HashMap<String, String>();
 			loadData();
+		}
+		else {
+			System.out.println("dang");
 		}
 		
 		myContactHandler = new MyContactHandler();
@@ -301,11 +320,12 @@ public class MyEngineTest implements ApplicationListener{
 	}
 
 	private void loadData() {
-		if (!Gdx.files.internal("data.sav").exists()) {
+		if (!Gdx.files.local("data.sav").exists()) {
 			try {
-				BufferedWriter writer = new BufferedWriter(new FileWriter(Gdx.files.internal("data.sav").file()));
+				BufferedWriter writer = new BufferedWriter(new FileWriter(Gdx.files.local("data.sav").file()));
 				String defaultSave = new String("best_time" + 60 * 1000 + ";");
-				writer.write(new String(EncryptionHandler.encrypt(defaultSave)));
+				defaultSave += "previous_time" + 60 * 1000 + ";";
+				writer.write(EncryptionHandler.encrypt(defaultSave));
 				writer.close();
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
@@ -318,20 +338,38 @@ public class MyEngineTest implements ApplicationListener{
 		}
 		else {
 			try {
-				byte[] data = Files.readAllBytes(Gdx.files.internal("data.sav").file().toPath());
-				String cleanData = EncryptionHandler.decrypt(new String(data));
+				InputStream fis = new FileInputStream(Gdx.files.local("data.sav").file());
+		        BufferedReader reader = new BufferedReader(new InputStreamReader(fis));
+				
+		        String readData = "";
+		        String rawData = "";
+		        
+		        while ((readData = reader.readLine()) != null) {
+		        	rawData += readData;
+		        }
+
+				String cleanData = EncryptionHandler.decrypt(new String(rawData));
+				
+				reader.close();
 
 			    String info = "best_time";
 			    String result = cleanData.substring(cleanData.indexOf(info) + info.length(), cleanData.indexOf(";"));
-			    {
-			        savedData.put(info, result);
+			    savedData.put(info, result);
+			    info = "previous_time";
+			    if (!cleanData.contains("previous_time")) {
+				    savedData.put(info, "" + 60 * 1000);
 			    }
+			    else {
+			    	result = cleanData.substring(cleanData.indexOf(info) + info.length(), cleanData.indexOf(";", 15));
+				    savedData.put(info, result);
+			    }
+
+
 			} catch (FileNotFoundException e) {
 				e.printStackTrace();
 			} catch (IOException e) {
 				e.printStackTrace();
 			} catch (Exception e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
@@ -340,18 +378,18 @@ public class MyEngineTest implements ApplicationListener{
 	
 	private void saveData() {
 		try {
-			BufferedWriter writer = new BufferedWriter(new FileWriter(Gdx.files.internal("data_temp.sav").file()));
+			BufferedWriter writer = new BufferedWriter(new FileWriter(Gdx.files.local("data_temp.sav").file()));
 			String dataToSave = "";
 			for(Entry<String, String> e : savedData.entrySet()) {
 			        dataToSave += e.getKey();
 			        dataToSave += e.getValue();
-			        dataToSave += ";";
+			        dataToSave += ";\n";
 			}
 			writer.write(EncryptionHandler.encrypt(dataToSave));
 			writer.close();
-			if (Gdx.files.internal("data_temp.sav").exists()) {
-				Gdx.files.internal("data.sav").file().delete();
-				Gdx.files.internal("data_temp.sav").file().renameTo(Gdx.files.internal("data.sav").file());
+			if (Gdx.files.local("data_temp.sav").exists()) {
+				Gdx.files.local("data.sav").file().delete();
+				Gdx.files.local("data_temp.sav").file().renameTo(Gdx.files.local("data.sav").file());
 			}
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
@@ -476,6 +514,7 @@ public class MyEngineTest implements ApplicationListener{
 		timeTaken = timeNow - timeStarted;
 		
 		if (numberOfReds == 0) {
+			savedData.replace("previous_time", String.valueOf(timeTaken));
 			if (timeTaken < Integer.parseInt((String)savedData.get("best_time"))) {
 				savedData.replace("best_time", String.valueOf(timeTaken));
 				saveData();
