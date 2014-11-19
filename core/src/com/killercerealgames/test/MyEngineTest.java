@@ -34,6 +34,7 @@ import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
 import com.badlogic.gdx.physics.box2d.Contact;
@@ -166,12 +167,15 @@ public class MyEngineTest implements ApplicationListener{
 	}
 
 	public class MyActor extends Actor {
+		public float changeX;
+		
 		Skin skin = new Skin(Gdx.files.internal("data/uiskin.json"));
 		Table table = new Table(skin);
 		
 		Texture texture = new Texture(Gdx.files.internal("newSpaceBackground.png"));
 		MySprite sprite1 = new MySprite(texture, 0, 0);
 		MySprite sprite2 = new MySprite(texture, sprite1.myX + sprite1.getWidth(), 0);
+		MySprite sprite3 = new MySprite(texture, sprite2.myX + sprite2.getWidth(), 0);
 		
         BitmapFont font = new BitmapFont();
         String stringTime;
@@ -179,6 +183,7 @@ public class MyEngineTest implements ApplicationListener{
 		
 		private MySprite currentSprite = sprite1;
 		private MySprite nextSprite = sprite2;
+		private MySprite nextNextSprite = sprite3;
 
 		private Label numberOfRedsText = new Label("Red squares remaining: ", skin);
 		private Label numberOfRedsNumber = new Label("", skin);
@@ -214,29 +219,33 @@ public class MyEngineTest implements ApplicationListener{
 			previousTimeNumber.setColor(Color.ORANGE);
 			table.add(previousTimeText);
 			table.add(previousTimeNumber);
+			
+			changeX = -currentSprite.getWidth();
 		}
 
 		@Override
 		public void draw(Batch batch, float alpha) {
 		    batch.draw(sprite1, sprite1.myX, sprite1.myY, sprite1.getOriginX(), sprite1.getOriginY(), sprite1.getWidth(), sprite1.getHeight(), sprite1.getScaleX(), sprite1.getScaleY(), sprite1.getRotation());
 		    batch.draw(sprite2, sprite2.myX, sprite2.myY, sprite2.getOriginX(), sprite2.getOriginY(), sprite2.getWidth(), sprite2.getHeight(), sprite2.getScaleX(), sprite2.getScaleY(), sprite2.getRotation());
-		    
+		    batch.draw(sprite3, sprite3.myX, sprite3.myY, sprite3.getOriginX(), sprite3.getOriginY(), sprite3.getWidth(), sprite3.getHeight(), sprite3.getScaleX(), sprite3.getScaleY(), sprite3.getRotation());
+
 		    numberOfRedsNumber.setText(String.valueOf(MyEngineTest.numberOfReds));
 		    currentTimeNumber.setText((MyEngineTest.timeTaken / 1000) + "." + ((MyEngineTest.timeTaken / 100) % 10));
 		    bestTimeNumber.setText((Integer.parseInt(MyEngineTest.savedData.get("best_time")) / 1000) + "." + ((Integer.parseInt(MyEngineTest.savedData.get("best_time")) / 100) % 10));
-		   // bestTimeNumber.setText("0");
-		    //previousTimeNumber.setText((Integer.parseInt(MyEngineTest.savedData.get("previous_time")) / 1000) + "." + ((Integer.parseInt(MyEngineTest.savedData.get("previous_time")) / 100) % 10));
-		    previousTimeNumber.setText("0");
+		    previousTimeNumber.setText((Integer.parseInt(MyEngineTest.savedData.get("previous_time")) / 1000) + "." + ((Integer.parseInt(MyEngineTest.savedData.get("previous_time")) / 100) % 10));
 		    table.draw(batch, alpha);
 		}
 		@Override
 		public void act(float delta) {
 			currentSprite.myX = currentSprite.myX - 1;
 			nextSprite.myX = currentSprite.myX + currentSprite.getWidth();
-			if (currentSprite.myX <= -currentSprite.getWidth()) {
+			nextNextSprite.myX = nextSprite.myX + nextSprite.getWidth();
+			if (currentSprite.myX <= changeX) {
 				MySprite holder = currentSprite;
 				currentSprite = nextSprite;
-				nextSprite = holder;
+				nextSprite = nextNextSprite;
+				nextNextSprite = holder;
+				changeX = -currentSprite.getWidth();
 			}
 
 		}
@@ -245,7 +254,7 @@ public class MyEngineTest implements ApplicationListener{
 	public static class EncryptionHandler {
 		
 			private static String algorithm = "AES";
-			private static byte[] keyValue = new byte[] {'4','3','9','1','2','3','8','8','4','5','3','5','1','1','0','4'};// your key
+			private static byte[] keyValue = new byte[] {'4','3','9','1','2','3','8','8','4','5','3','5','1','1','0','4'};
 
 			    public static char[] encrypt(String plainText) throws Exception 
 			    {
@@ -284,10 +293,7 @@ public class MyEngineTest implements ApplicationListener{
 			savedData = new HashMap<String, String>();
 			loadData();
 		}
-		else {
-			System.out.println("dang");
-		}
-		
+
 		myContactHandler = new MyContactHandler();
 	
 		world = new World(new Vector2(0,-9.81f), true);
@@ -353,7 +359,7 @@ public class MyEngineTest implements ApplicationListener{
 				reader.close();
 
 			    String info = "best_time";
-			    String result = cleanData.substring(cleanData.indexOf(info) + info.length(), cleanData.indexOf(";"));
+			    String result = cleanData.substring(cleanData.indexOf(info) + info.length(), cleanData.indexOf(";", cleanData.indexOf(info)));
 			    savedData.put(info, result);
 			    info = "previous_time";
 			    if (!cleanData.contains("previous_time")) {
@@ -514,9 +520,9 @@ public class MyEngineTest implements ApplicationListener{
 		timeTaken = timeNow - timeStarted;
 		
 		if (numberOfReds == 0) {
-			savedData.replace("previous_time", String.valueOf(timeTaken));
+			savedData.put("previous_time", String.valueOf(timeTaken));
 			if (timeTaken < Integer.parseInt((String)savedData.get("best_time"))) {
-				savedData.replace("best_time", String.valueOf(timeTaken));
+				savedData.put("best_time", String.valueOf(timeTaken));
 				saveData();
 			}
 			respawn();
@@ -586,7 +592,7 @@ public class MyEngineTest implements ApplicationListener{
 			sprite.setRotation(rotation * alpha + sprite.getRotation() * (1.0f - alpha));
 			
 		}
-		moveCamera(alpha);
+		//moveCamera(alpha);
 
 	}
 	
@@ -632,7 +638,7 @@ public class MyEngineTest implements ApplicationListener{
 		world.dispose();
 		
 	}
-	
+
 	private void checkInput() {
 		if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT_BRACKET)) {
 			debug = !debug;
@@ -652,6 +658,35 @@ public class MyEngineTest implements ApplicationListener{
 		if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
 			respawn();
 		}
+		
+		if (Gdx.input.justTouched()) {
+			Vector3 mousePos = new Vector3();
+			mousePos.set(Gdx.input.getX(), Gdx.input.getY(), 0);
+			camera.unproject(mousePos);
+			
+			Vector2 touch = new Vector2(mousePos.x, mousePos.y);
+			Vector2 playerPos = new Vector2();
+			playerPos.set(blue.getPosition());
+			
+			Vector2 destination = touch.sub(playerPos);
+			destination.nor();
+			destination.scl(50);
+			if (destination.x > 50) destination.x = 50;
+			if (destination.y > 50) destination.y = 50;
+			System.out.println(destination);
+			blue.applyForceToCenter(destination, true);
+
+			
+		}
+		
 	}
 
 }
+
+
+
+
+
+
+
+
