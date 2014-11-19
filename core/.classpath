@@ -4,5 +4,6 @@
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry exported="true" kind="con" path="org.springsource.ide.eclipse.gradle.classpathcontainer"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/RubeLoader"/>
+	<classpathentry exported="true" kind="lib" path="libs/moga/com.bda.controller.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

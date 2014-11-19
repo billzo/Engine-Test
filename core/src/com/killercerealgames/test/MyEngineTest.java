@@ -53,6 +53,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Base64Coder;
 import com.badlogic.gdx.utils.TimeUtils;
+import com.bda.controller.Controller;
 import com.gushikustudios.rube.RubeScene;
 import com.gushikustudios.rube.loader.RubeSceneLoader;
 
@@ -89,6 +90,13 @@ public class MyEngineTest implements ApplicationListener{
 	private MyContactHandler myContactHandler;
 	
 	Array<Body> bodies;
+
+	public static Controller mogaController1;
+	public static boolean mogaEnabled = false;
+	private boolean upReleased = true;
+	private boolean downlReleased = true;
+	private boolean rightReleased = true;
+	private boolean leftReleased = true;
 	
 	public static int numberOfReds = 0;
 	
@@ -322,6 +330,7 @@ public class MyEngineTest implements ApplicationListener{
 		stage.addActor(myActor);
 		
 		bodies = new Array<Body>();
+
 
 	}
 
@@ -673,9 +682,25 @@ public class MyEngineTest implements ApplicationListener{
 			destination.scl(50);
 			if (destination.x > 50) destination.x = 50;
 			if (destination.y > 50) destination.y = 50;
-			System.out.println(destination);
-			blue.applyForceToCenter(destination, true);
 
+			blue.applyForceToCenter(destination, true);
+			
+		}
+		
+		if (mogaEnabled) {
+			if (mogaController1.getKeyCode(Controller.KEYCODE_DPAD_UP) == Controller.ACTION_DOWN) {
+				blue.applyForceToCenter(new Vector2(0, 50), true);
+				System.out.println("hereee");
+			}
+			if (mogaController1.getKeyCode(Controller.KEYCODE_DPAD_DOWN) == Controller.ACTION_DOWN) {
+				blue.applyForceToCenter(new Vector2(0, -50), true);
+			}
+			if (mogaController1.getKeyCode(Controller.KEYCODE_DPAD_RIGHT) == Controller.ACTION_DOWN) {
+				blue.applyForceToCenter(new Vector2(50, 0), true);
+			}
+			if (mogaController1.getKeyCode(Controller.KEYCODE_DPAD_LEFT) == Controller.ACTION_DOWN) {
+				blue.applyForceToCenter(new Vector2(-50, 0), true);
+			}
 			
 		}
 		
