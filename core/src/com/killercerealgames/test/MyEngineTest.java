@@ -8,16 +8,15 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
 import java.security.Key;
+import java.text.DecimalFormat;
+import java.text.NumberFormat;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 
-import sun.misc.BASE64Decoder;
-import sun.misc.BASE64Encoder;
 import box2dLight.PointLight;
 import box2dLight.RayHandler;
 
@@ -202,7 +201,11 @@ public class MyEngineTest implements ApplicationListener{
 		private Label previousTimeText = new Label("Previous time: ", skin);
 		private Label previousTimeNumber = new Label("", skin);
 		
+		NumberFormat formatter = DecimalFormat.getInstance();
+		
 		public void init() {
+			formatter.setMinimumFractionDigits(3);
+			
 			table.setPosition(Gdx.graphics.getWidth() - 120, Gdx.graphics.getHeight() - 50);
 
 			numberOfRedsText.setColor(Color.RED);
@@ -238,9 +241,9 @@ public class MyEngineTest implements ApplicationListener{
 		    batch.draw(sprite3, sprite3.myX, sprite3.myY, sprite3.getOriginX(), sprite3.getOriginY(), sprite3.getWidth(), sprite3.getHeight(), sprite3.getScaleX(), sprite3.getScaleY(), sprite3.getRotation());
 
 		    numberOfRedsNumber.setText(String.valueOf(MyEngineTest.numberOfReds));
-		    currentTimeNumber.setText((MyEngineTest.timeTaken / 1000) + "." + ((MyEngineTest.timeTaken / 100) % 10));
-		    bestTimeNumber.setText((Integer.parseInt(MyEngineTest.savedData.get("best_time")) / 1000) + "." + ((Integer.parseInt(MyEngineTest.savedData.get("best_time")) / 100) % 10));
-		    previousTimeNumber.setText((Integer.parseInt(MyEngineTest.savedData.get("previous_time")) / 1000) + "." + ((Integer.parseInt(MyEngineTest.savedData.get("previous_time")) / 100) % 10));
+		    currentTimeNumber.setText(formatter.format(MyEngineTest.timeTaken / 1000f));
+		    bestTimeNumber.setText(formatter.format((Integer.parseInt(MyEngineTest.savedData.get("best_time")) / 1000f)));
+		    previousTimeNumber.setText(formatter.format((Integer.parseInt(MyEngineTest.savedData.get("previous_time")) / 1000f)));
 		    table.draw(batch, alpha);
 		}
 		@Override
