@@ -5,5 +5,7 @@
 	<classpathentry exported="true" kind="con" path="org.springsource.ide.eclipse.gradle.classpathcontainer"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/RubeLoader"/>
 	<classpathentry exported="true" kind="lib" path="libs/moga/com.bda.controller.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/libgdx-utils"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/libgdx-utils-box2d"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

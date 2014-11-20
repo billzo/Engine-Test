@@ -17,6 +17,8 @@ import java.util.Map.Entry;
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 
+import net.dermetfan.gdx.physics.box2d.Box2DUtils;
+
 import box2dLight.PointLight;
 import box2dLight.RayHandler;
 
@@ -316,6 +318,7 @@ public class MyEngineTest implements ApplicationListener{
 		camera = new OrthographicCamera(Gdx.graphics.getWidth() / 50, Gdx.graphics.getHeight() / 50);
 		camera.zoom = 0.5f;
 		renderer = new Box2DDebugRenderer();
+		renderer.setDrawInactiveBodies(false);
 		
 		shapes = new HashMap<Body, Shape>();
 
@@ -436,6 +439,15 @@ public class MyEngineTest implements ApplicationListener{
 			
 			numberOfReds++;
 		}
+		texture = new Texture(Gdx.files.internal("green.jpg"));
+		for (Body body : scene.getNamed(Body.class, "wall")) {
+			Sprite sprite = new Sprite(texture);
+			sprite.setOriginCenter();
+			sprite.setScale(Box2DUtils.width(body) / sprite.getWidth(), .00005f);
+			sprite.setRotation(MathUtils.radiansToDegrees * body.getAngle());
+			body.setUserData("green");
+			shapes.put(body, new Shape(body, sprite, null, "green"));
+		}
 		
 		
 
@@ -501,7 +513,6 @@ public class MyEngineTest implements ApplicationListener{
 		for (Shape shape : shapes.values()) {
 			shape.sprite.draw(batch);
 		}
-
 		batch.end();
 		
 		checkInput();
@@ -613,6 +624,9 @@ public class MyEngineTest implements ApplicationListener{
 		boundaries.put("down", scene.getNamed(Body.class, "down").first());
 		boundaries.put("left", scene.getNamed(Body.class, "left").first());
 		boundaries.put("right", scene.getNamed(Body.class, "right").first());
+		for (Body body : scene.getNamed(Body.class, "wall")) {
+			boundaries.put("wall", body);
+		}
 		
 	}
 	
