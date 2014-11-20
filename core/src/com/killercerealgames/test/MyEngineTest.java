@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.security.Key;
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
@@ -33,17 +34,22 @@ import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
 import com.badlogic.gdx.physics.box2d.Box2DDebugRenderer;
+import com.badlogic.gdx.physics.box2d.ChainShape;
 import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.ContactImpulse;
 import com.badlogic.gdx.physics.box2d.ContactListener;
+import com.badlogic.gdx.physics.box2d.EdgeShape;
 import com.badlogic.gdx.physics.box2d.Filter;
 import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.Manifold;
+import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.Transform;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -72,13 +78,15 @@ public class MyEngineTest implements ApplicationListener{
 	
 	private OrthographicCamera camera;
 	private Box2DDebugRenderer renderer;
+	private ShapeRenderer shapeRenderer;
 	
 	private Texture texture;
 	private HashMap<Body, Shape> shapes;
 
 	private SpriteBatch batch;
 	
-	private HashMap<String, Body> boundaries;
+	private HashMap<String, Body> cameraBoundaries;
+	private ArrayList<Body> boundaries;
 	
 	private Stage stage;
 	
@@ -318,7 +326,7 @@ public class MyEngineTest implements ApplicationListener{
 		camera = new OrthographicCamera(Gdx.graphics.getWidth() / 50, Gdx.graphics.getHeight() / 50);
 		camera.zoom = 0.5f;
 		renderer = new Box2DDebugRenderer();
-		renderer.setDrawInactiveBodies(false);
+		shapeRenderer = new ShapeRenderer();
 		
 		shapes = new HashMap<Body, Shape>();
 
@@ -439,15 +447,7 @@ public class MyEngineTest implements ApplicationListener{
 			
 			numberOfReds++;
 		}
-		texture = new Texture(Gdx.files.internal("green.jpg"));
-		for (Body body : scene.getNamed(Body.class, "wall")) {
-			Sprite sprite = new Sprite(texture);
-			sprite.setOriginCenter();
-			sprite.setScale(Box2DUtils.width(body) / sprite.getWidth(), .00005f);
-			sprite.setRotation(MathUtils.radiansToDegrees * body.getAngle());
-			body.setUserData("green");
-			shapes.put(body, new Shape(body, sprite, null, "green"));
-		}
+
 		
 		
 
@@ -471,16 +471,18 @@ public class MyEngineTest implements ApplicationListener{
 		
 		shapes.put(blue, new Shape(blue, blueSprite, pLight, "blue"));
 		
-		boundaries = new HashMap<String, Body>();
+		cameraBoundaries = new HashMap<String, Body>();
+		boundaries = new ArrayList<Body>();
 		createBoundaries();
 		centerCamera();
 		
 		timeStarted = System.currentTimeMillis();
 		timeNow = System.currentTimeMillis();
 		timeTaken = timeNow - timeStarted;
-		
 
+		
 	}
+
 
 	@Override
 	public void render () {
@@ -504,22 +506,42 @@ public class MyEngineTest implements ApplicationListener{
 		}
 
 		stage.draw();
-
-		batch.setProjectionMatrix(camera.combined);
 		
 		centerSprites();
-
+		
+		batch.setProjectionMatrix(camera.combined);
 		batch.begin();
 		for (Shape shape : shapes.values()) {
 			shape.sprite.draw(batch);
 		}
 		batch.end();
 		
+		shapeRenderer.setProjectionMatrix(camera.combined);
+		shapeRenderer.begin(ShapeType.Line);
+		Vector2 vec1 = new Vector2();
+		Vector2 vec2 = new Vector2();
+		for (Body body : boundaries) {
+			for (Fixture fixture : body.getFixtureList()) {
+				ChainShape shape = (ChainShape) fixture.getShape();
+				for (int i = 0; i < shape.getVertexCount(); i++) {
+					shape.getVertex(i, vec2);
+					shape.getVertex((i + 1) % shape.getVertexCount(), vec1);
+					shapeRenderer.setColor(33, 4, 0, 0.5f);
+					shapeRenderer.line(vec1.x, vec1.y + 1.12f, vec2.x, vec2.y + 1.12f);
+				}
+			}
+
+
+
+		}
+		shapeRenderer.end();
+		
 		checkInput();
 		if (debug) {
 			renderer.render(world, camera.combined);
 			System.out.println(world.getBodyCount());
 		}
+		
 
 		
 		rayHandler.setCombinedMatrix(camera.combined);
@@ -620,19 +642,19 @@ public class MyEngineTest implements ApplicationListener{
 	}
 	
 	private void createBoundaries() {
-		boundaries.put("up", scene.getNamed(Body.class, "up").first());
-		boundaries.put("down", scene.getNamed(Body.class, "down").first());
-		boundaries.put("left", scene.getNamed(Body.class, "left").first());
-		boundaries.put("right", scene.getNamed(Body.class, "right").first());
+		cameraBoundaries.put("up", scene.getNamed(Body.class, "up").first());
+		cameraBoundaries.put("down", scene.getNamed(Body.class, "down").first());
+		cameraBoundaries.put("left", scene.getNamed(Body.class, "left").first());
+		cameraBoundaries.put("right", scene.getNamed(Body.class, "right").first());
 		for (Body body : scene.getNamed(Body.class, "wall")) {
-			boundaries.put("wall", body);
+			boundaries.add(body);
 		}
 		
 	}
 	
 	private void centerCamera() {
-		float centerX = (boundaries.get("left").getPosition().x + boundaries.get("right").getPosition().x) / 2;
-		float centerY = (boundaries.get("up").getPosition().y + boundaries.get("down").getPosition().y) / 2;
+		float centerX = (cameraBoundaries.get("left").getPosition().x + cameraBoundaries.get("right").getPosition().x) / 2;
+		float centerY = (cameraBoundaries.get("up").getPosition().y + cameraBoundaries.get("down").getPosition().y) / 2;
 		camera.position.set(centerX, centerY, 0);
 		camera.update();
 		
@@ -662,6 +684,7 @@ public class MyEngineTest implements ApplicationListener{
 		texture.dispose();
 		rayHandler.dispose();
 		world.dispose();
+		renderer.dispose();
 		
 	}
 
