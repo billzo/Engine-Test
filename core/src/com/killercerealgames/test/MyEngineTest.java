@@ -28,8 +28,10 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
@@ -204,7 +206,7 @@ public class MyEngineTest implements ApplicationListener{
 
 		private Label numberOfRedsText = new Label("Red squares remaining: ", skin);
 		private Label numberOfRedsNumber = new Label("", skin);
-		private Label currentTimeText = new Label("Table elapsed: ", skin);
+		private Label currentTimeText = new Label("Time elapsed: ", skin);
 		private Label currentTimeNumber = new Label("", skin);
 		private Label bestTimeText = new Label("Best time: ", skin);
 		private Label bestTimeNumber = new Label("", skin);
@@ -432,6 +434,7 @@ public class MyEngineTest implements ApplicationListener{
 
 	private void generateShapesAndCenterCamera() {
 		texture = new Texture(Gdx.files.internal("index.png"));
+		texture.setFilter(TextureFilter.Linear, TextureFilter.Linear);
 		for (Body body : scene.getNamed(Body.class, "circle")) {
 			Sprite sprite = new Sprite(texture);
 			sprite.setScale(1/200f);
@@ -453,6 +456,7 @@ public class MyEngineTest implements ApplicationListener{
 
 		
 		texture = new Texture(Gdx.files.internal("blue.png"));
+		texture.setFilter(TextureFilter.Linear, TextureFilter.Linear);
 		blue = scene.getNamed(Body.class, "square").first();
 		blue.setUserData("blue");
 		Sprite blueSprite = new Sprite(texture);
@@ -487,7 +491,7 @@ public class MyEngineTest implements ApplicationListener{
 	@Override
 	public void render () {
 		Gdx.gl.glClearColor(0, 0, 0, 0);
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
 		
 		stage.act(Gdx.graphics.getDeltaTime());
 
@@ -526,6 +530,7 @@ public class MyEngineTest implements ApplicationListener{
 				for (int i = 0; i < shape.getVertexCount(); i++) {
 					shape.getVertex(i, vec2);
 					shape.getVertex((i + 1) % shape.getVertexCount(), vec1);
+					Gdx.gl20.glLineWidth(2.5f);
 					shapeRenderer.setColor(33, 4, 0, 0.5f);
 					shapeRenderer.line(vec1.x, vec1.y + 1.12f, vec2.x, vec2.y + 1.12f);
 				}
