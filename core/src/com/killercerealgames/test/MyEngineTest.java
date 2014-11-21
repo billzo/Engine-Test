@@ -506,7 +506,7 @@ public class MyEngineTest implements ApplicationListener{
 			world.step(step, 6, 2);
 			accumulator -= step;
 			interpolate((float) accumulator / step);
-
+			moveCamera();
 		}
 
 		stage.draw();
@@ -565,6 +565,8 @@ public class MyEngineTest implements ApplicationListener{
 			}
 		}
 		
+
+		
 		Gdx.graphics.setTitle("FPS: " + Gdx.graphics.getFramesPerSecond());
 		timeNow = System.currentTimeMillis();
 		timeTaken = timeNow - timeStarted;
@@ -601,25 +603,39 @@ public class MyEngineTest implements ApplicationListener{
 		
 	}
 	
-	private void moveCamera(float alpha) {
+	private void moveCamera() {
 
-		float CAMERA_SPEED = .45f;
-		float delta = Gdx.graphics.getDeltaTime();
+//		float CAMERA_SPEED = .45f;
+//		float delta = Gdx.graphics.getDeltaTime();
+//		
+//		if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+//			camera.position.x -= CAMERA_SPEED * delta;
+//		}
+//		if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+//			camera.position.x += CAMERA_SPEED * delta;
+//
+//		}
+//		if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+//			camera.position.y += CAMERA_SPEED * delta;
+//
+//		}
+//		if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+//			camera.position.y -= CAMERA_SPEED * delta;
+//		}
 		
-		if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-			camera.position.x -= CAMERA_SPEED * delta;
-		}
-		if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-			camera.position.x += CAMERA_SPEED * delta;
-
-		}
-		if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
-			camera.position.y += CAMERA_SPEED * delta;
-
-		}
-		if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-			camera.position.y -= CAMERA_SPEED * delta;
-		}
+		Transform transform = blue.getTransform();
+		Vector2 bodyPosition = transform.getPosition();
+		Float rotation = MathUtils.radiansToDegrees * transform.getRotation();
+		
+//		float translateX = bodyPosition.x * alpha + camera.position.x * (1.0f - alpha);
+//		float translateY = bodyPosition.y * alpha + camera.position.y * (1.0f - alpha);
+		
+		float speed = (float) Math.sqrt((blue.getLinearVelocity().x * blue.getLinearVelocity().x) + (blue.getLinearVelocity().y * blue.getLinearVelocity().y));
+		speed = speed * .5f;
+		float lerp = Gdx.graphics.getDeltaTime() * speed;
+		Vector3 position = camera.position;
+		position.x += (blue.getPosition().x - position.x) * lerp;
+		position.y += (blue.getPosition().y - position.y) * lerp;
 		
 		camera.update();
 	}
@@ -642,7 +658,6 @@ public class MyEngineTest implements ApplicationListener{
 			sprite.setRotation(rotation * alpha + sprite.getRotation() * (1.0f - alpha));
 			
 		}
-		//moveCamera(alpha);
 
 	}
 	
@@ -694,6 +709,7 @@ public class MyEngineTest implements ApplicationListener{
 	}
 
 	private void checkInput() {
+		blue.setLinearDamping(0.75f);
 		if (Gdx.input.isKeyJustPressed(Input.Keys.RIGHT_BRACKET)) {
 			debug = !debug;
 		}
@@ -735,7 +751,6 @@ public class MyEngineTest implements ApplicationListener{
 		if (mogaEnabled) {
 			if (mogaController1.getKeyCode(Controller.KEYCODE_DPAD_UP) == Controller.ACTION_DOWN) {
 				blue.applyForceToCenter(new Vector2(0, 50), true);
-				System.out.println("hereee");
 			}
 			if (mogaController1.getKeyCode(Controller.KEYCODE_DPAD_DOWN) == Controller.ACTION_DOWN) {
 				blue.applyForceToCenter(new Vector2(0, -50), true);
@@ -747,6 +762,20 @@ public class MyEngineTest implements ApplicationListener{
 				blue.applyForceToCenter(new Vector2(-50, 0), true);
 			}
 			
+		}
+		
+		int MAX_VELOCITY = 10;
+		if (blue.getLinearVelocity().y <= -MAX_VELOCITY) {
+			blue.setLinearVelocity(blue.getLinearVelocity().x, -MAX_VELOCITY);
+		}
+		if (blue.getLinearVelocity().y >= MAX_VELOCITY) {
+			blue.setLinearVelocity(blue.getLinearVelocity().x, MAX_VELOCITY);
+		}
+		if (blue.getLinearVelocity().x >= MAX_VELOCITY) {
+			blue.setLinearVelocity(MAX_VELOCITY, blue.getLinearVelocity().y);
+		}
+		if (blue.getLinearVelocity().x <= -MAX_VELOCITY) {
+			blue.setLinearVelocity(-MAX_VELOCITY, blue.getLinearVelocity().y);
 		}
 		
 	}
