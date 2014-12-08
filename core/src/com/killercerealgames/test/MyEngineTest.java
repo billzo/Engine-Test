@@ -17,9 +17,6 @@ import java.util.Map.Entry;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
-import javax.swing.plaf.basic.BasicInternalFrameTitlePane.RestoreAction;
-
-import net.dermetfan.gdx.physics.box2d.Box2DUtils;
 
 import box2dLight.PointLight;
 import box2dLight.RayHandler;
@@ -29,7 +26,6 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
-import com.badlogic.gdx.graphics.GL30;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
@@ -48,11 +44,9 @@ import com.badlogic.gdx.physics.box2d.ChainShape;
 import com.badlogic.gdx.physics.box2d.Contact;
 import com.badlogic.gdx.physics.box2d.ContactImpulse;
 import com.badlogic.gdx.physics.box2d.ContactListener;
-import com.badlogic.gdx.physics.box2d.EdgeShape;
 import com.badlogic.gdx.physics.box2d.Filter;
 import com.badlogic.gdx.physics.box2d.Fixture;
 import com.badlogic.gdx.physics.box2d.Manifold;
-import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.Transform;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -62,7 +56,6 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Base64Coder;
 import com.badlogic.gdx.utils.TimeUtils;
@@ -71,6 +64,8 @@ import com.gushikustudios.rube.RubeScene;
 import com.gushikustudios.rube.loader.RubeSceneLoader;
 
 public class MyEngineTest implements ApplicationListener{
+	
+	private MyActivityRequestHandler myRequestHandler;
 	
 	private static final float step = 1/60f;
 	
@@ -118,6 +113,10 @@ public class MyEngineTest implements ApplicationListener{
 	private long timeStarted;
 	private long timeNow;
 	public static long timeTaken;
+	
+	public MyEngineTest(MyActivityRequestHandler handler) {
+		myRequestHandler = handler;
+	}
 
 	
 	boolean isLocAvailable;
@@ -633,6 +632,7 @@ public class MyEngineTest implements ApplicationListener{
 	}
 	
 	private void respawn() {
+		myRequestHandler.showAds(true);
 		numberOfReds = 0;
 		world.clearForces();
 		world.getBodies(bodies);

@@ -7,11 +7,11 @@ import com.badlogic.gdx.backends.iosrobovm.IOSApplication;
 import com.badlogic.gdx.backends.iosrobovm.IOSApplicationConfiguration;
 import com.killercerealgames.test.MyEngineTest;
 
-public class IOSLauncher extends IOSApplication.Delegate {
+public class IOSLauncher extends IOSApplication.Delegate implements MyActivityRequestHandler {
     @Override
     protected IOSApplication createApplication() {
         IOSApplicationConfiguration config = new IOSApplicationConfiguration();
-        return new IOSApplication(new MyEngineTest(), config);
+        return new IOSApplication(new MyEngineTest(this), config);
     }
 
     public static void main(String[] argv) {
@@ -19,4 +19,10 @@ public class IOSLauncher extends IOSApplication.Delegate {
         UIApplication.main(argv, null, IOSLauncher.class);
         pool.close();
     }
+
+	@Override
+	public void showAds(boolean show) {
+		// TODO Auto-generated method stub
+		
+	}
 }
