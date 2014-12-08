@@ -17,6 +17,7 @@ import java.util.Map.Entry;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane.RestoreAction;
 
 import net.dermetfan.gdx.physics.box2d.Box2DUtils;
 
@@ -55,10 +56,13 @@ import com.badlogic.gdx.physics.box2d.PolygonShape;
 import com.badlogic.gdx.physics.box2d.Transform;
 import com.badlogic.gdx.physics.box2d.World;
 import com.badlogic.gdx.scenes.scene2d.Actor;
+import com.badlogic.gdx.scenes.scene2d.InputEvent;
+import com.badlogic.gdx.scenes.scene2d.InputListener;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
+import com.badlogic.gdx.scenes.scene2d.utils.ClickListener;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Base64Coder;
 import com.badlogic.gdx.utils.TimeUtils;
@@ -184,6 +188,34 @@ public class MyEngineTest implements ApplicationListener{
 			this.myY = Y1;
 		}
 	}
+	
+	public class ResetActor extends Actor {
+		Texture newTex = new Texture(Gdx.files.internal("reset.png"));
+		public MySprite resetSprite = new MySprite(newTex, 0, 0);
+		
+		public void init() {
+			resetSprite.setSize(resetSprite.getWidth() * 0.25f, resetSprite.getHeight() * 0.25f);
+			resetSprite.setOriginCenter();
+			setColor(Color.CYAN);
+			addListener(new InputListener() {
+		        public boolean touchDown (InputEvent event, float x, float y, int pointer, int button) {
+		            return true;  // must return true for touchUp event to occur
+		        }
+		        public void touchUp (InputEvent event, float x, float y, int pointer, int button) {
+		        	respawn();
+		        }
+		    });
+		}
+		
+		public void center() {
+			resetSprite.setPosition(this.getX(), this.getY());
+		}
+		
+		@Override
+		public void draw (Batch batch, float parentAlpha) {
+			resetSprite.draw(batch);
+		}
+	}
 
 	public class MyActor extends Actor {
 		public float changeX;
@@ -194,7 +226,9 @@ public class MyEngineTest implements ApplicationListener{
 		Texture texture = new Texture(Gdx.files.internal("newSpaceBackground.png"));
 		MySprite sprite1 = new MySprite(texture, 0, 0);
 		MySprite sprite2 = new MySprite(texture, sprite1.myX + sprite1.getWidth(), 0);
-		MySprite sprite3 = new MySprite(texture, sprite2.myX + sprite2.getWidth(), 0);
+		MySprite sprite3 = new MySprite(texture, sprite1.myX + sprite1.getWidth(), 0);
+		
+		
 		
         BitmapFont font = new BitmapFont();
         String stringTime;
@@ -203,6 +237,7 @@ public class MyEngineTest implements ApplicationListener{
 		private MySprite currentSprite = sprite1;
 		private MySprite nextSprite = sprite2;
 		private MySprite nextNextSprite = sprite3;
+		
 
 		private Label numberOfRedsText = new Label("Red squares remaining: ", skin);
 		private Label numberOfRedsNumber = new Label("", skin);
@@ -244,6 +279,8 @@ public class MyEngineTest implements ApplicationListener{
 			table.add(previousTimeNumber);
 			
 			changeX = -currentSprite.getWidth();
+			
+			
 		}
 
 		@Override
@@ -257,6 +294,7 @@ public class MyEngineTest implements ApplicationListener{
 		    bestTimeNumber.setText(formatter.format((Integer.parseInt(MyEngineTest.savedData.get("best_time")) / 1000f)));
 		    previousTimeNumber.setText(formatter.format((Integer.parseInt(MyEngineTest.savedData.get("previous_time")) / 1000f)));
 		    table.draw(batch, alpha);
+		    
 		}
 		@Override
 		public void act(float delta) {
@@ -344,8 +382,16 @@ public class MyEngineTest implements ApplicationListener{
 		MyActor myActor = new MyActor();
 		myActor.init();
 		stage.addActor(myActor);
+		ResetActor resetActor = new ResetActor();
+		resetActor.init();
+		resetActor.setSize(resetActor.resetSprite.getWidth(), resetActor.resetSprite.getHeight());
+		resetActor.setPosition(0, Gdx.graphics.getHeight() - resetActor.resetSprite.getHeight());
+		resetActor.center();
+		stage.addActor(resetActor);
 		
 		bodies = new Array<Body>();
+		
+		Gdx.input.setInputProcessor(stage);
 
 
 	}
@@ -508,7 +554,7 @@ public class MyEngineTest implements ApplicationListener{
 			interpolate((float) accumulator / step);
 			moveCamera();
 		}
-
+		
 		stage.draw();
 		
 		centerSprites();
@@ -522,6 +568,10 @@ public class MyEngineTest implements ApplicationListener{
 		
 		shapeRenderer.setProjectionMatrix(camera.combined);
 		shapeRenderer.begin(ShapeType.Line);
+		if (debug) {
+			stage.setDebugAll(true);
+		}
+
 		Vector2 vec1 = new Vector2();
 		Vector2 vec2 = new Vector2();
 		for (Body body : boundaries) {
@@ -662,10 +712,10 @@ public class MyEngineTest implements ApplicationListener{
 	}
 	
 	private void createBoundaries() {
-		cameraBoundaries.put("up", scene.getNamed(Body.class, "up").first());
-		cameraBoundaries.put("down", scene.getNamed(Body.class, "down").first());
-		cameraBoundaries.put("left", scene.getNamed(Body.class, "left").first());
-		cameraBoundaries.put("right", scene.getNamed(Body.class, "right").first());
+//		cameraBoundaries.put("up", scene.getNamed(Body.class, "up").first());
+//		cameraBoundaries.put("down", scene.getNamed(Body.class, "down").first());
+//		cameraBoundaries.put("left", scene.getNamed(Body.class, "left").first());
+//		cameraBoundaries.put("right", scene.getNamed(Body.class, "right").first());
 		for (Body body : scene.getNamed(Body.class, "wall")) {
 			boundaries.add(body);
 		}
@@ -673,10 +723,10 @@ public class MyEngineTest implements ApplicationListener{
 	}
 	
 	private void centerCamera() {
-		float centerX = (cameraBoundaries.get("left").getPosition().x + cameraBoundaries.get("right").getPosition().x) / 2;
-		float centerY = (cameraBoundaries.get("up").getPosition().y + cameraBoundaries.get("down").getPosition().y) / 2;
-		camera.position.set(centerX, centerY, 0);
-		camera.update();
+		//float centerX = (cameraBoundaries.get("left").getPosition().x + cameraBoundaries.get("right").getPosition().x) / 2;
+		//float centerY = (cameraBoundaries.get("up").getPosition().y + cameraBoundaries.get("down").getPosition().y) / 2;
+		//camera.position.set(centerX, centerY, 0);
+		//camera.update();
 		
 	}
 
