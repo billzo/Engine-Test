@@ -7,5 +7,6 @@
 	<classpathentry exported="true" kind="lib" path="libs/moga/com.bda.controller.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/libgdx-utils"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/libgdx-utils-box2d"/>
+	<classpathentry combineaccessrules="false" exported="true" kind="src" path="/overlap2d-runtime-libgdx"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

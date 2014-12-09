@@ -62,6 +62,7 @@ import com.badlogic.gdx.utils.TimeUtils;
 import com.bda.controller.Controller;
 import com.gushikustudios.rube.RubeScene;
 import com.gushikustudios.rube.loader.RubeSceneLoader;
+import com.uwsoft.editor.renderer.Overlap2DStage;
 
 public class MyEngineTest implements ApplicationListener{
 	
@@ -76,6 +77,8 @@ public class MyEngineTest implements ApplicationListener{
 	double newTime;
 	double currentTime;
 	double frameTime;
+	
+	private Overlap2DStage oStage;
 	
 	private OrthographicCamera camera;
 	private Box2DDebugRenderer renderer;
@@ -290,8 +293,8 @@ public class MyEngineTest implements ApplicationListener{
 
 		    numberOfRedsNumber.setText(String.valueOf(MyEngineTest.numberOfReds));
 		    currentTimeNumber.setText(formatter.format(MyEngineTest.timeTaken / 1000f));
-		    bestTimeNumber.setText(formatter.format((Integer.parseInt(MyEngineTest.savedData.get("best_time")) / 1000f)));
-		    previousTimeNumber.setText(formatter.format((Integer.parseInt(MyEngineTest.savedData.get("previous_time")) / 1000f)));
+		    //bestTimeNumber.setText(formatter.format((Integer.parseInt(MyEngineTest.savedData.get("best_time")) / 1000f)));
+		    //previousTimeNumber.setText(formatter.format((Integer.parseInt(MyEngineTest.savedData.get("previous_time")) / 1000f)));
 		    table.draw(batch, alpha);
 		    
 		}
@@ -650,7 +653,7 @@ public class MyEngineTest implements ApplicationListener{
 		loader = new RubeSceneLoader(world);
 		scene = loader.loadScene(Gdx.files.internal("ball.json"));
 		generateShapesAndCenterCamera();
-		
+		camera.position.set(blue.getPosition(), 0);
 	}
 	
 	private void moveCamera() {
